@@ -1,0 +1,137 @@
+---
+ - hosts: localhost
+   become: yes
+
+   vars: 
+      terraform_version_to_install : 0.12.16
+      packer_version : 1.4.5
+      terraform_path : /usr/bin/
+      packer_path : /usr/bin/
+   
+   roles:
+    - ansible-pycharm
+
+   tasks:
+    - name: Ensure unzip is installed.
+      package: name=unzip state=present
+    
+    - name: Install Terraform
+      unarchive:
+        src: "https://releases.hashicorp.com/terraform/{{ terraform_version_to_install }}/terraform_{{ terraform_version_to_install }}_linux_amd64.zip"
+        dest: "{{ terraform_path }}"
+        creates: "{{ terraform_path }}/terraform"
+        remote_src: true
+    
+    - name: Install Packer.
+      unarchive:
+        src: https://releases.hashicorp.com/packer/{{ packer_version }}/packer_{{ packer_version }}_linux_amd64.zip
+        dest: "{{ packer_path }}"
+        remote_src: true
+        creates: "{{ packer_path }}/packer"
+
+    #TODO: This is failing with /ubuntu bionic Release' does not have a Release file.
+    # - name: Install gnome-terminator ppa repo
+    #   apt_repository:
+    #     repo: ppa:gnome-terminator
+    #     state: present
+    - name: install terminator
+      apt:
+       name: terminator
+       state: present
+
+    - name: Add apt keys
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: 93C4A3FD7BB9C367
+      
+    - name: Add linux apt key
+      apt_key:
+        url: https://dl-ssl.google.com/linux/linux_signing_key.pub
+        state: present
+
+    - name: Add sublime apt keys
+      apt_key:
+        url: https://download.sublimetext.com/sublimehq-pub.gpg
+        state: present
+
+    - name:  "Add sublime apt repo"
+      shell: "echo 'deb https://download.sublimetext.com/ apt/stable/' | sudo tee /etc/apt/sources.list.d/sublime-text.list"
+      # apt_repository:
+      #   repo: deb https://download.sublimetext.com/ apt/stable
+      #   state: present
+
+    # - name:  Add google chrome repo
+    #   apt_repository:
+    #     repo: deb [ arch=amd64 ] https://dl.google.com/linux/chrome/deb/ stable main
+    #     state: present
+    - name: Add google chrome repo
+      shell: "echo 'deb [ arch=amd64 ] https://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google.list"
+
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        update_cache: yes
+
+      #Installing docker
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+
+    - name: Install aptitude using apt
+      apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Get Ubuntu dist name
+      shell: "lsb_release -cs"
+      register: ubuntu_release_name
+
+    # - name: Add Docker Repository
+    #   apt_repository:
+    #     repo: deb https://download.docker.com/linux/ubuntu {{ ubuntu_release_name }} stable
+    #     state: present
+    - name: Add docker repo
+      shell: "add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\""
+
+    - name: Update apt and install docker-ce
+      apt: update_cache=yes name=docker-ce state=latest
+    
+    - name: Install Docker compose
+      shell: "curl -L \"https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/bin/docker-compose"
+
+    - name:  Make docker-compose executable
+      shell: "chmod +x /usr/bin/docker-compose"  
+
+    #   # Installing Pycharm IDE
+    # - name: Add pycharm repo
+    #   shell: "add-apt-repository ppa:mystic-mirage/pycharm"
+    #   # apt_repository:
+    #   #   repo: ppa:mystic-mirage/pycharm
+    #   #   state: present
+    
+    # - name: Install pycharm IDE
+    #   apt: update_cache=yes name=pycharm-community state=latest
+    
+
+      # Installing packages
+    - name: Install required system packages
+      apt:
+        pkg:
+          - python
+          - ansible
+          - awscli
+          - terminator
+          - sublime-text
+          - jq
+          - libnss3
+          # - google-chrome-stable
+          - git
