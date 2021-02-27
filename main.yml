@@ -34,7 +34,7 @@
     #   apt_repository:
     #     repo: ppa:gnome-terminator
     #     state: present
-    - name: install terminator
+    - name: Install terminator
       apt:
        name: terminator
        state: present
